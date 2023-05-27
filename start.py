@@ -3,6 +3,7 @@ import os
 import speech_recognition as sr
 import whisper
 import torch
+import inquirer
 
 from datetime import datetime, timedelta
 from queue import Queue
@@ -11,9 +12,20 @@ from time import sleep
 from sys import platform
 
 def main():
+    
+    default_record_timeout = 2
+    default_phrase_timeout = 3
+    default_engery_threshold = 1000
 
-    record_timeout = input('Please Type Your Timeout Record time')
-    phrase_timeout = input('Please type how long are you going to split the Transcript')
+    record_timeout = input('How real time the recording is in seconds. (Default : 2 Seconds) : ')
+    if record_timeout == "":
+        record_timeout = default_record_timeout
+    phrase_timeout = input('How much empty space between recordings before we consider it a new line in the transcription. (Default : 3 Seconds) : ')
+    if phrase_timeout == "":
+        phrase_timeout = default_phrase_timeout
+    engery_threshold  = input('Energy level for mic to detect : ')
+    if engery_threshold == "":
+        engery_threshold = default_engery_threshold
     
     # Ask the Whisper Model
     
@@ -37,7 +49,7 @@ def main():
 
     english_answer = inquirer.prompt(english_questions)
 
-    non_english = english_answer[english]
+    non_english = english_answer['english']
 
     # The last time a recording was retreived from the queue.
     phrase_time = None
@@ -47,14 +59,14 @@ def main():
     data_queue = Queue()
     # We use SpeechRecognizer to record our audio because it has a nice feauture where it can detect when speech ends.
     recorder = sr.Recognizer()
-    recorder.energy_threshold = args.energy_threshold
+    recorder.energy_threshold = engery_threshold
     # Definitely do this, dynamic energy compensation lowers the energy threshold dramtically to a point where the SpeechRecognizer never stops recording.
     recorder.dynamic_energy_threshold = False
     
     # Important for linux users. 
     # Prevents permanent application hang and crash by using the wrong Microphone
     if 'linux' in platform:
-        mic_name = args.default_microphone
+        mic_name = default_microphone
         if not mic_name or mic_name == 'list':
             print("Available microphone devices are: ")
             for index, name in enumerate(sr.Microphone.list_microphone_names()):
